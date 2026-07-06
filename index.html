@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project Budget Triage</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="app-header__title">
+      <h1>Project Budget Triage</h1>
+      <p>Sort your portfolio into Keep, Optimize, and Close.</p>
+    </div>
+    <button id="addProjectBtn" class="btn btn--primary">+ Add Project</button>
+  </header>
+
+  <main class="board" id="board">
+    <section class="column column--keep" data-section="keep">
+      <header class="column__header">
+        <h2>Keep</h2>
+        <span class="column__count" id="count-keep">0</span>
+      </header>
+      <div class="column__list" id="list-keep" data-section="keep"></div>
+      <footer class="column__footer">
+        <span>Total:</span> <strong id="total-keep">$0M</strong>
+      </footer>
+    </section>
+
+    <section class="column column--optimize" data-section="optimize">
+      <header class="column__header">
+        <h2>Optimize</h2>
+        <span class="column__count" id="count-optimize">0</span>
+      </header>
+      <div class="column__list" id="list-optimize" data-section="optimize"></div>
+      <footer class="column__footer">
+        <span>Total:</span> <strong id="total-optimize">$0M</strong>
+      </footer>
+    </section>
+
+    <section class="column column--close" data-section="close">
+      <header class="column__header">
+        <h2>Close</h2>
+        <span class="column__count" id="count-close">0</span>
+      </header>
+      <div class="column__list" id="list-close" data-section="close"></div>
+      <footer class="column__footer">
+        <span>Total:</span> <strong id="total-close">$0M</strong>
+      </footer>
+    </section>
+  </main>
+
+  <!-- Add / Edit Project Modal -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <h3 id="modalTitle">Add Project</h3>
+      <form id="projectForm">
+        <label for="nameInput">Project name</label>
+        <input type="text" id="nameInput" placeholder="e.g. Atlas Migration" autocomplete="off">
+        <div class="field-error" id="nameError"></div>
+
+        <label for="budgetInput">Budget (in $M)</label>
+        <input type="text" id="budgetInput" placeholder="e.g. 8 or 5-10" autocomplete="off">
+        <div class="field-hint">Enter a single number or a range like <code>5-10</code>.</div>
+        <div class="field-error" id="budgetError"></div>
+
+        <div class="modal__actions">
+          <button type="button" class="btn btn--ghost" id="cancelBtn">Cancel</button>
+          <button type="submit" class="btn btn--primary" id="saveBtn">Add Project</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
