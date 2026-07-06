@@ -229,15 +229,35 @@ body {
 .card__top {
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
   gap: 8px;
 }
 
+.card__handle {
+  flex-shrink: 0;
+  color: var(--ink-soft);
+  font-size: 18px;
+  line-height: 1;
+  padding: 2px 2px 2px 0;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
 .card__name {
+  flex: 1;
   font-weight: 600;
   font-size: 14px;
   line-height: 1.35;
   word-break: break-word;
+}
+
+.card--ghost {
+  position: fixed;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0.9;
+  box-shadow: var(--shadow-lift);
+  transform: rotate(2deg);
 }
 
 .card__budget {
@@ -252,8 +272,9 @@ body {
 
 .card__actions {
   display: flex;
-  gap: 4px;
+  gap: 2px;
   flex-shrink: 0;
+  margin-left: auto;
 }
 
 .card__icon-btn {
@@ -261,14 +282,29 @@ body {
   background: transparent;
   color: var(--ink-soft);
   cursor: pointer;
-  font-size: 13px;
-  padding: 3px 6px;
+  font-size: 14px;
+  padding: 6px 8px;
   border-radius: 4px;
   line-height: 1;
 }
 .card__icon-btn:hover {
   background: var(--bg);
   color: var(--ink);
+}
+
+@media (max-width: 900px) {
+  .card__handle {
+    font-size: 22px;
+    padding: 6px 8px 6px 2px;
+  }
+  .card__icon-btn {
+    font-size: 16px;
+    padding: 8px 10px;
+  }
+  .btn {
+    padding: 12px 20px;
+    font-size: 15px;
+  }
 }
 
 /* Modal */

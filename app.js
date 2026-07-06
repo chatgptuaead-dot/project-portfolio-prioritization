@@ -126,6 +126,7 @@
 
     card.innerHTML = `
       <div class="card__top">
+        <div class="card__handle" aria-hidden="true">⠿</div>
         <div class="card__name"></div>
         <div class="card__actions">
           <button class="card__icon-btn" data-action="edit" title="Edit">✎</button>
@@ -146,8 +147,73 @@
 
     card.querySelector('[data-action="edit"]').addEventListener("click", () => openEditModal(project.id));
     card.querySelector('[data-action="delete"]').addEventListener("click", () => deleteProject(project.id));
+    card.querySelector(".card__handle").addEventListener("touchstart", (e) => handleTouchDragStart(e, card, project.id), { passive: false });
 
     return card;
+  }
+
+  // ---------- Touch drag and drop (mobile) ----------
+
+  let touchGhost = null;
+  let touchDraggingId = null;
+
+  function handleTouchDragStart(e, card, projectId) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    touchDraggingId = projectId;
+    card.classList.add("dragging");
+
+    const rect = card.getBoundingClientRect();
+    touchGhost = card.cloneNode(true);
+    touchGhost.classList.add("card--ghost");
+    touchGhost.style.width = `${rect.width}px`;
+    touchGhost.style.left = `${rect.left}px`;
+    touchGhost.style.top = `${rect.top}px`;
+    document.body.appendChild(touchGhost);
+
+    const offsetX = touch.clientX - rect.left;
+    const offsetY = touch.clientY - rect.top;
+
+    function moveGhost(clientX, clientY) {
+      touchGhost.style.left = `${clientX - offsetX}px`;
+      touchGhost.style.top = `${clientY - offsetY}px`;
+    }
+
+    function findColumnAt(x, y) {
+      touchGhost.style.display = "none";
+      const el = document.elementFromPoint(x, y);
+      touchGhost.style.display = "";
+      return el ? el.closest(".column") : null;
+    }
+
+    function onTouchMove(ev) {
+      ev.preventDefault();
+      const t = ev.touches[0];
+      moveGhost(t.clientX, t.clientY);
+
+      const column = findColumnAt(t.clientX, t.clientY);
+      document.querySelectorAll(".column").forEach((c) => c.classList.toggle("drag-over", c === column));
+    }
+
+    function onTouchEnd(ev) {
+      const t = ev.changedTouches[0];
+      const column = findColumnAt(t.clientX, t.clientY);
+      document.querySelectorAll(".column").forEach((c) => c.classList.remove("drag-over"));
+
+      if (column) moveProject(touchDraggingId, column.dataset.section);
+
+      card.classList.remove("dragging");
+      touchGhost.remove();
+      touchGhost = null;
+      touchDraggingId = null;
+      document.removeEventListener("touchmove", onTouchMove);
+      document.removeEventListener("touchend", onTouchEnd);
+      document.removeEventListener("touchcancel", onTouchEnd);
+    }
+
+    document.addEventListener("touchmove", onTouchMove, { passive: false });
+    document.addEventListener("touchend", onTouchEnd);
+    document.addEventListener("touchcancel", onTouchEnd);
   }
 
   // ---------- Drag and drop on columns ----------
