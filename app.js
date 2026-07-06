@@ -125,9 +125,11 @@
     card.dataset.id = project.id;
 
     card.innerHTML = `
-      <div class="card__top">
+      <div class="card__row1">
         <div class="card__handle" aria-hidden="true">⠿</div>
         <div class="card__name" title=""></div>
+      </div>
+      <div class="card__row2">
         <div class="card__budget"></div>
         <div class="card__actions">
           <button class="card__icon-btn" data-action="edit" title="Edit">✎</button>
