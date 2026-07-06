@@ -80,7 +80,7 @@
     // Close: show the exact 0-based range as entered (0-max when min is
     // already 0), or 0-min when the range was reduced down from a higher min.
     const top = project.min > 0 ? project.min : project.max;
-    return formatRange(0, top);
+    return top === 0 ? formatMoney(0) : formatRange(0, top);
   }
 
   function contributionToTotal(project) {
