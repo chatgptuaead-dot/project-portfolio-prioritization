@@ -71,18 +71,29 @@
 
   function displayedValue(project) {
     if (project.section === "keep") return formatMoney(project.max);
-    if (project.section === "optimize") return formatMoney(project.min);
-    return formatRange(0, project.min);
+    if (project.section === "optimize") {
+      // A project moved in from Close is valued at its higher number;
+      // otherwise Optimize shows the full entered range.
+      if (project.fromClose) return formatMoney(project.max);
+      return project.min === project.max ? formatMoney(project.min) : formatRange(project.min, project.max);
+    }
+    // Close: show the exact 0-based range as entered (0-max when min is
+    // already 0), or 0-min when the range was reduced down from a higher min.
+    const top = project.min > 0 ? project.min : project.max;
+    return formatRange(0, top);
   }
 
   function contributionToTotal(project) {
     if (project.section === "keep") return project.max;
-    return project.min; // optimize -> min, close -> min (top end of 0-min range)
+    if (project.section === "optimize") return project.fromClose ? project.max : project.min;
+    return project.min > 0 ? project.min : project.max; // close -> top of the 0-based range
   }
 
   // ---------- Rendering ----------
 
   function render() {
+    let grandTotal = 0;
+
     SECTIONS.forEach((section) => {
       const listEl = document.getElementById(`list-${section}`);
       const items = projects.filter((p) => p.section === section);
@@ -101,7 +112,10 @@
 
       const total = items.reduce((sum, p) => sum + contributionToTotal(p), 0);
       document.getElementById(`total-${section}`).textContent = formatMoney(total);
+      grandTotal += total;
     });
+
+    document.getElementById("grand-total").textContent = formatMoney(grandTotal);
   }
 
   function renderCard(project) {
@@ -164,6 +178,7 @@
   function moveProject(id, section) {
     const project = projects.find((p) => p.id === id);
     if (!project || project.section === section) return;
+    project.fromClose = section === "optimize" && project.section === "close";
     project.section = section;
     saveProjects();
     render();
@@ -253,10 +268,13 @@
       project.name = name;
       project.min = parsed.min;
       project.max = parsed.max;
-      if (parsed.min === 0) project.section = "close"; // re-run auto-route rule (PRD 3.4)
+      if (parsed.min === 0) {
+        project.section = "close"; // re-run auto-route rule (PRD 3.4)
+        project.fromClose = false;
+      }
     } else {
       const section = parsed.min === 0 ? "close" : DEFAULT_NEW_SECTION;
-      projects.push({ id: makeId(), name, min: parsed.min, max: parsed.max, section });
+      projects.push({ id: makeId(), name, min: parsed.min, max: parsed.max, section, fromClose: false });
     }
 
     saveProjects();

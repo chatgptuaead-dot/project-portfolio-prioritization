@@ -58,6 +58,28 @@ body {
   font-size: 14px;
 }
 
+.grand-total-bar {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 32px;
+  background: #eef0fb;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.grand-total-bar strong {
+  font-size: 20px;
+  color: var(--accent);
+  text-transform: none;
+  letter-spacing: normal;
+}
+
 .btn {
   border: none;
   border-radius: var(--radius-sm);
