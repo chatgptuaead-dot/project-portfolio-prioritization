@@ -80,6 +80,15 @@ body {
   letter-spacing: normal;
 }
 
+.board-scope-bar {
+  padding: 10px 32px;
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
 .btn {
   border: none;
   border-radius: var(--radius-sm);
@@ -91,6 +100,11 @@ body {
 }
 
 .btn:active { transform: translateY(1px); }
+
+.btn--small {
+  padding: 7px 12px;
+  font-size: 13px;
+}
 
 .btn--primary {
   background: var(--accent);
@@ -436,5 +450,100 @@ body {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
+  }
+}
+
+/* Teams bar */
+
+.teams-bar {
+  border-top: 1px solid var(--border);
+  background: var(--card-bg);
+  padding: 14px 32px 24px;
+}
+
+.teams-bar__inner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.teams-bar__label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+  flex-shrink: 0;
+}
+
+.teams-bar__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 1;
+}
+
+.team-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.team-chip:hover {
+  border-color: var(--accent);
+}
+
+.team-chip--active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.team-chip__leave {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: inherit;
+  opacity: 0.7;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  padding: 4px;
+  margin: -4px -4px -4px 0;
+  border-radius: 999px;
+}
+
+.team-chip__leave:hover {
+  opacity: 1;
+}
+
+.teams-bar__buttons {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .teams-bar__inner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .teams-bar__buttons {
+    justify-content: stretch;
+  }
+  .teams-bar__buttons .btn {
+    flex: 1;
   }
 }

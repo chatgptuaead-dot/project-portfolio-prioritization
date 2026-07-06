@@ -15,6 +15,10 @@
     <button id="addProjectBtn" class="btn btn--primary">+ Add Project</button>
   </header>
 
+  <div class="board-scope-bar">
+    <span id="boardScopeLabel">Viewing: My Board</span>
+  </div>
+
   <div class="grand-total-bar">
     <span>Total Portfolio Budget</span>
     <strong id="grand-total">AED 0M</strong>
@@ -55,6 +59,19 @@
     </section>
   </main>
 
+  <footer class="teams-bar">
+    <div class="teams-bar__inner">
+      <span class="teams-bar__label">Teams</span>
+      <div class="teams-bar__chips" id="teamChips">
+        <button class="team-chip team-chip--active" data-board="personal">My Board</button>
+      </div>
+      <div class="teams-bar__buttons">
+        <button class="btn btn--ghost btn--small" id="joinTeamBtn">Join Team</button>
+        <button class="btn btn--primary btn--small" id="createTeamBtn">+ Create Team</button>
+      </div>
+    </div>
+  </footer>
+
   <!-- Add / Edit Project Modal -->
   <div class="modal-overlay" id="modalOverlay">
     <div class="modal">
@@ -77,6 +94,45 @@
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <!-- Create Team Modal -->
+  <div class="modal-overlay" id="createTeamOverlay">
+    <div class="modal">
+      <h3>Create Team</h3>
+      <form id="createTeamForm">
+        <label for="teamNameInput">Team name</label>
+        <input type="text" id="teamNameInput" placeholder="e.g. Growth Squad" autocomplete="off">
+        <div class="field-error" id="teamNameError"></div>
+
+        <label for="teamCodeInput">Team code</label>
+        <input type="text" id="teamCodeInput" placeholder="e.g. GROWTH2026" autocomplete="off">
+        <div class="field-hint">Anyone with this code can view, add, and edit this team's board. Choose something memorable but not guessable.</div>
+        <div class="field-error" id="teamCodeError"></div>
+
+        <div class="modal__actions">
+          <button type="button" class="btn btn--ghost" id="cancelCreateTeamBtn">Cancel</button>
+          <button type="submit" class="btn btn--primary">Create Team</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Join Team Modal -->
+  <div class="modal-overlay" id="joinTeamOverlay">
+    <div class="modal">
+      <h3>Join Team</h3>
+      <form id="joinTeamForm">
+        <label for="teamJoinCodeInput">Team code</label>
+        <input type="text" id="teamJoinCodeInput" placeholder="Enter the team's code" autocomplete="off">
+        <div class="field-error" id="teamJoinCodeError"></div>
+
+        <div class="modal__actions">
+          <button type="button" class="btn btn--ghost" id="cancelJoinTeamBtn">Cancel</button>
+          <button type="submit" class="btn btn--primary">Join Team</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="app.js"></script>
 </body>
 </html>

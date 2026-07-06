@@ -1,7 +1,32 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  onSnapshot,
+  serverTimestamp,
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCGuNhv6Og4WPAoJbYIu_VF2zi5W5nSlY0",
+  authDomain: "project-portfolio-3d786.firebaseapp.com",
+  projectId: "project-portfolio-3d786",
+  storageBucket: "project-portfolio-3d786.firebasestorage.app",
+  messagingSenderId: "802776125348",
+  appId: "1:802776125348:web:8dc6a9decc638af64b7b31",
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
+
 (function () {
   "use strict";
 
   const STORAGE_KEY = "budgetTriage.projects.v1";
+  const MY_TEAMS_KEY = "budgetTriage.myTeams";
+  const ACTIVE_BOARD_KEY = "budgetTriage.activeBoard";
   const DEFAULT_NEW_SECTION = "optimize"; // easy-to-change config constant (see PRD 3.1)
   const SECTIONS = ["keep", "optimize", "close"];
 
@@ -9,9 +34,13 @@
   let projects = [];
   let editingId = null;
 
-  // ---------- Persistence ----------
+  /** @type {{type:"personal"} | {type:"team", code:string, name:string}} */
+  let boardState = { type: "personal" };
+  let teamUnsubscribe = null;
 
-  function loadProjects() {
+  // ---------- Personal persistence ----------
+
+  function loadPersonalProjects() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
       projects = [];
@@ -19,18 +48,62 @@
     }
     try {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) projects = parsed;
+      projects = Array.isArray(parsed) ? parsed : [];
     } catch (e) {
       projects = [];
     }
   }
 
-  function saveProjects() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
+  function persistProjects() {
+    if (boardState.type === "personal") {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
+      return;
+    }
+    updateDoc(doc(db, "teams", boardState.code), { projects }).catch((err) => {
+      console.error("Failed to save team board:", err);
+    });
   }
 
   function makeId() {
     return Math.random().toString(36).slice(2) + Date.now().toString(36);
+  }
+
+  // ---------- Team membership persistence ----------
+
+  function getJoinedTeams() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(MY_TEAMS_KEY) || "[]");
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveJoinedTeams(teams) {
+    localStorage.setItem(MY_TEAMS_KEY, JSON.stringify(teams));
+  }
+
+  function addJoinedTeam(team) {
+    const teams = getJoinedTeams();
+    const existing = teams.find((t) => t.code === team.code);
+    if (existing) {
+      existing.name = team.name;
+    } else {
+      teams.push(team);
+    }
+    saveJoinedTeams(teams);
+  }
+
+  function removeJoinedTeam(code) {
+    saveJoinedTeams(getJoinedTeams().filter((t) => t.code !== code));
+  }
+
+  function saveActiveBoard() {
+    localStorage.setItem(ACTIVE_BOARD_KEY, JSON.stringify(boardState));
+  }
+
+  function normalizeCode(raw) {
+    return raw.trim().toUpperCase().replace(/\s+/g, "");
   }
 
   // ---------- Budget parsing & formatting ----------
@@ -249,13 +322,13 @@
     if (!project || project.section === section) return;
     project.fromClose = section === "optimize" && project.section === "close";
     project.section = section;
-    saveProjects();
+    persistProjects();
     render();
   }
 
   function deleteProject(id) {
     projects = projects.filter((p) => p.id !== id);
-    saveProjects();
+    persistProjects();
     render();
   }
 
@@ -346,18 +419,272 @@
       projects.push({ id: makeId(), name, min: parsed.min, max: parsed.max, section, fromClose: false });
     }
 
-    saveProjects();
+    persistProjects();
     render();
     closeModal();
   });
 
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && modalOverlay.classList.contains("open")) closeModal();
+    if (e.key === "Escape") {
+      if (modalOverlay.classList.contains("open")) closeModal();
+      if (createTeamOverlay.classList.contains("open")) closeCreateTeamModal();
+      if (joinTeamOverlay.classList.contains("open")) closeJoinTeamModal();
+    }
+  });
+
+  // ---------- Teams ----------
+
+  const boardScopeLabel = document.getElementById("boardScopeLabel");
+  const teamChipsEl = document.getElementById("teamChips");
+
+  const createTeamOverlay = document.getElementById("createTeamOverlay");
+  const createTeamForm = document.getElementById("createTeamForm");
+  const teamNameInput = document.getElementById("teamNameInput");
+  const teamCodeInput = document.getElementById("teamCodeInput");
+  const teamNameError = document.getElementById("teamNameError");
+  const teamCodeError = document.getElementById("teamCodeError");
+
+  const joinTeamOverlay = document.getElementById("joinTeamOverlay");
+  const joinTeamForm = document.getElementById("joinTeamForm");
+  const teamJoinCodeInput = document.getElementById("teamJoinCodeInput");
+  const teamJoinCodeError = document.getElementById("teamJoinCodeError");
+
+  function updateBoardScopeLabel() {
+    boardScopeLabel.textContent =
+      boardState.type === "personal" ? "Viewing: My Board" : `Viewing: ${boardState.name} (${boardState.code})`;
+  }
+
+  function renderTeamChips() {
+    const joined = getJoinedTeams();
+    teamChipsEl.innerHTML = "";
+
+    const personalChip = document.createElement("button");
+    personalChip.className = "team-chip" + (boardState.type === "personal" ? " team-chip--active" : "");
+    personalChip.textContent = "My Board";
+    personalChip.dataset.board = "personal";
+    personalChip.addEventListener("click", () => switchToPersonal());
+    teamChipsEl.appendChild(personalChip);
+
+    joined.forEach((team) => {
+      const chip = document.createElement("button");
+      chip.className = "team-chip" + (boardState.type === "team" && boardState.code === team.code ? " team-chip--active" : "");
+      chip.dataset.board = "team";
+      chip.dataset.code = team.code;
+
+      const label = document.createElement("span");
+      label.textContent = `${team.name} (${team.code})`;
+      chip.appendChild(label);
+
+      const leaveBtn = document.createElement("span");
+      leaveBtn.className = "team-chip__leave";
+      leaveBtn.textContent = "✕";
+      leaveBtn.title = "Leave team";
+      leaveBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        leaveTeam(team.code);
+      });
+      chip.appendChild(leaveBtn);
+
+      chip.addEventListener("click", () => switchToTeam(team.code, team.name));
+      teamChipsEl.appendChild(chip);
+    });
+  }
+
+  function switchToPersonal() {
+    if (teamUnsubscribe) {
+      teamUnsubscribe();
+      teamUnsubscribe = null;
+    }
+    boardState = { type: "personal" };
+    loadPersonalProjects();
+    saveActiveBoard();
+    updateBoardScopeLabel();
+    renderTeamChips();
+    render();
+  }
+
+  function switchToTeam(code, name) {
+    if (teamUnsubscribe) {
+      teamUnsubscribe();
+      teamUnsubscribe = null;
+    }
+    boardState = { type: "team", code, name };
+    saveActiveBoard();
+    updateBoardScopeLabel();
+    renderTeamChips();
+    projects = [];
+    render();
+
+    teamUnsubscribe = onSnapshot(
+      doc(db, "teams", code),
+      (snap) => {
+        if (!snap.exists()) return;
+        const data = snap.data();
+        projects = Array.isArray(data.projects) ? data.projects : [];
+        if (data.name && data.name !== boardState.name) {
+          boardState.name = data.name;
+          addJoinedTeam({ code, name: data.name });
+          updateBoardScopeLabel();
+          renderTeamChips();
+        }
+        render();
+      },
+      (err) => {
+        console.error("Team sync error:", err);
+      }
+    );
+  }
+
+  function leaveTeam(code) {
+    removeJoinedTeam(code);
+    if (boardState.type === "team" && boardState.code === code) {
+      switchToPersonal();
+    } else {
+      renderTeamChips();
+    }
+  }
+
+  function openCreateTeamModal() {
+    teamNameInput.value = "";
+    teamCodeInput.value = "";
+    teamNameError.textContent = "";
+    teamCodeError.textContent = "";
+    createTeamOverlay.classList.add("open");
+    teamNameInput.focus();
+  }
+
+  function closeCreateTeamModal() {
+    createTeamOverlay.classList.remove("open");
+  }
+
+  function openJoinTeamModal() {
+    teamJoinCodeInput.value = "";
+    teamJoinCodeError.textContent = "";
+    joinTeamOverlay.classList.add("open");
+    teamJoinCodeInput.focus();
+  }
+
+  function closeJoinTeamModal() {
+    joinTeamOverlay.classList.remove("open");
+  }
+
+  document.getElementById("createTeamBtn").addEventListener("click", openCreateTeamModal);
+  document.getElementById("cancelCreateTeamBtn").addEventListener("click", closeCreateTeamModal);
+  createTeamOverlay.addEventListener("click", (e) => {
+    if (e.target === createTeamOverlay) closeCreateTeamModal();
+  });
+
+  document.getElementById("joinTeamBtn").addEventListener("click", openJoinTeamModal);
+  document.getElementById("cancelJoinTeamBtn").addEventListener("click", closeJoinTeamModal);
+  joinTeamOverlay.addEventListener("click", (e) => {
+    if (e.target === joinTeamOverlay) closeJoinTeamModal();
+  });
+
+  createTeamForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    teamNameError.textContent = "";
+    teamCodeError.textContent = "";
+
+    const name = teamNameInput.value.trim();
+    const code = normalizeCode(teamCodeInput.value);
+    let hasError = false;
+
+    if (!name) {
+      teamNameError.textContent = "Team name is required.";
+      hasError = true;
+    }
+    if (!code) {
+      teamCodeError.textContent = "Team code is required.";
+      hasError = true;
+    } else if (!/^[A-Z0-9_-]{3,30}$/.test(code) || /^__.*__$/.test(code)) {
+      teamCodeError.textContent = "Use 3-30 letters, numbers, - or _.";
+      hasError = true;
+    }
+
+    if (hasError) return;
+
+    const submitBtn = createTeamForm.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    try {
+      const teamRef = doc(db, "teams", code);
+      const existing = await getDoc(teamRef);
+      if (existing.exists()) {
+        teamCodeError.textContent = "That code is already taken. Choose another.";
+        return;
+      }
+      await setDoc(teamRef, { name, projects: [], createdAt: serverTimestamp() });
+      addJoinedTeam({ code, name });
+      switchToTeam(code, name);
+      closeCreateTeamModal();
+    } catch (err) {
+      console.error(err);
+      teamCodeError.textContent = "Something went wrong. Please try again.";
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+
+  joinTeamForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    teamJoinCodeError.textContent = "";
+
+    const code = normalizeCode(teamJoinCodeInput.value);
+    if (!code) {
+      teamJoinCodeError.textContent = "Enter a team code.";
+      return;
+    }
+
+    const submitBtn = joinTeamForm.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    try {
+      const teamRef = doc(db, "teams", code);
+      const snap = await getDoc(teamRef);
+      if (!snap.exists()) {
+        teamJoinCodeError.textContent = "No team found with that code.";
+        return;
+      }
+      const data = snap.data();
+      addJoinedTeam({ code, name: data.name || code });
+      switchToTeam(code, data.name || code);
+      closeJoinTeamModal();
+    } catch (err) {
+      console.error(err);
+      teamJoinCodeError.textContent = "Something went wrong. Please try again.";
+    } finally {
+      submitBtn.disabled = false;
+    }
   });
 
   // ---------- Init ----------
 
-  loadProjects();
-  setupColumnDropzones();
-  render();
+  function init() {
+    loadPersonalProjects();
+    setupColumnDropzones();
+
+    let restored = false;
+    try {
+      const raw = localStorage.getItem(ACTIVE_BOARD_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (saved && saved.type === "team" && saved.code) {
+          const joined = getJoinedTeams();
+          const match = joined.find((t) => t.code === saved.code);
+          if (match) {
+            switchToTeam(match.code, match.name);
+            restored = true;
+          }
+        }
+      }
+    } catch (e) {
+      // ignore malformed saved state
+    }
+
+    if (!restored) {
+      updateBoardScopeLabel();
+      renderTeamChips();
+      render();
+    }
+  }
+
+  init();
 })();
