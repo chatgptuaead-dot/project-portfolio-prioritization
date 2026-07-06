@@ -127,15 +127,16 @@
     card.innerHTML = `
       <div class="card__top">
         <div class="card__handle" aria-hidden="true">⠿</div>
-        <div class="card__name"></div>
+        <div class="card__name" title=""></div>
+        <div class="card__budget"></div>
         <div class="card__actions">
           <button class="card__icon-btn" data-action="edit" title="Edit">✎</button>
           <button class="card__icon-btn" data-action="delete" title="Delete">✕</button>
         </div>
       </div>
-      <div class="card__budget"></div>
     `;
     card.querySelector(".card__name").textContent = project.name;
+    card.querySelector(".card__name").title = project.name;
     card.querySelector(".card__budget").textContent = displayedValue(project);
 
     card.addEventListener("dragstart", (e) => {
