@@ -14,7 +14,7 @@
   function loadProjects() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      seedDemoData();
+      projects = [];
       return;
     }
     try {
@@ -27,15 +27,6 @@
 
   function saveProjects() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
-  }
-
-  function seedDemoData() {
-    projects = [
-      { id: makeId(), name: "Atlas Platform Migration", min: 8, max: 12, section: "keep" },
-      { id: makeId(), name: "Legacy Reporting Suite", min: 3, max: 6, section: "optimize" },
-      { id: makeId(), name: "Regional Kiosk Rollout", min: 2, max: 5, section: "close" },
-    ];
-    saveProjects();
   }
 
   function makeId() {
@@ -179,9 +170,6 @@
   }
 
   function deleteProject(id) {
-    const project = projects.find((p) => p.id === id);
-    if (!project) return;
-    if (!confirm(`Delete "${project.name}"? This cannot be undone.`)) return;
     projects = projects.filter((p) => p.id !== id);
     saveProjects();
     render();
