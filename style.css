@@ -210,7 +210,9 @@ body {
 }
 
 .card {
+  position: relative;
   min-width: 0;
+  overflow: hidden;
   background: var(--card-bg);
   border: 1px solid var(--border);
   border-left-width: 3px;
@@ -237,13 +239,10 @@ body {
   align-items: center;
   gap: 2px;
   min-width: 0;
+  padding-right: 14px;
 }
 
 .card__row2 {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1px;
   margin-top: 1px;
 }
 
@@ -278,10 +277,11 @@ body {
 }
 
 .card__budget {
-  flex-shrink: 0;
   font-size: 10px;
   font-weight: 700;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .column--keep .card__budget { color: var(--keep); }
@@ -289,9 +289,20 @@ body {
 .column--close .card__budget { color: var(--close); }
 
 .card__actions {
+  position: absolute;
+  top: 2px;
+  right: 2px;
   display: flex;
   gap: 0;
-  flex-shrink: 0;
+  opacity: 0.55;
+  background: var(--card-bg);
+  border-radius: 3px;
+  transition: opacity 0.1s ease;
+}
+
+.card:hover .card__actions,
+.card:focus-within .card__actions {
+  opacity: 1;
 }
 
 .card__icon-btn {
@@ -317,12 +328,14 @@ body {
 
 @media (max-width: 900px) {
   .card__handle {
-    font-size: 22px;
-    padding: 6px 8px 6px 2px;
+    font-size: 16px;
+  }
+  .card__row1 {
+    padding-right: 44px;
   }
   .card__icon-btn {
-    font-size: 16px;
-    padding: 8px 10px;
+    font-size: 12px;
+    padding: 4px 6px;
   }
   .btn {
     padding: 12px 20px;
